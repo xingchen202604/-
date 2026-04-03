@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "es2020"],
+    "module": "commonjs",
+    "target": "es2020",
+    "strict": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "jsx": "react",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}
