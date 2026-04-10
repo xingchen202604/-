@@ -18,8 +18,8 @@ html {
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
                "Microsoft YaHei", "Segoe UI", sans-serif;
-  background-color: #FAFAF7;
-  color: #1a1a1a;
+  background-color: #F5EDE0;
+  color: #2A1F14;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
@@ -33,15 +33,15 @@ img { display: block; max-width: 100%; }
 
 /* ---------- 颜色变量 ---------- */
 :root {
-  --cream:      #FAFAF7;
-  --cream-alt:  #F4F3EE;
-  --ink:        #1a1a1a;
-  --ink-soft:   #4a4a4a;
-  --ink-muted:  #7a7a7a;
-  --accent:     #2C5F4A;      /* 深绿，稳重专业 */
-  --accent-lt:  #EAF1EE;
-  --border:     #E5E4DF;
-  --white:      #FFFFFF;
+  --cream:      #F5EDE0;      /* 原站主背景：暖米色 */
+  --cream-alt:  #EEE3D1;      /* 略深一档的暖米色 */
+  --ink:        #2A1F14;      /* 深暖棕，接近原站主文字 */
+  --ink-soft:   #5C4A35;      /* 次级文字 */
+  --ink-muted:  #9C8878;      /* 提示文字 */
+  --accent:     #8B5E3C;      /* 暖棕强调色，贴近原站按钮 */
+  --accent-lt:  #F0E2D0;      /* 浅暖棕背景 */
+  --border:     #DDD0BE;      /* 边框 */
+  --white:      #FFFDF9;      /* 偏暖白 */
 }
 
 /* ---------- 容器 ---------- */
@@ -214,6 +214,7 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.1em;
   color: var(--accent);
   background: var(--accent-lt);
+  border: 1px solid #D4B896;
   padding: 6px 14px;
   border-radius: 20px;
   margin-bottom: 28px;
@@ -474,21 +475,21 @@ img { display: block; max-width: 100%; }
 
 /* ---------- 联系我们 ---------- */
 .contact-section {
-  background: var(--ink);
+  background: #2A1F14;
   color: var(--white);
 }
 
 .contact-section .section-label {
-  color: #7fc9aa;
+  color: #C8A882;
 }
 
 .contact-section .section-title {
-  color: var(--white);
+  color: #FFF8F0;
 }
 
 .contact-body {
   font-size: 1rem;
-  color: rgba(255,255,255,0.72);
+  color: rgba(255, 240, 218, 0.72);
   line-height: 1.85;
   max-width: 560px;
   margin-bottom: 40px;
@@ -506,7 +507,7 @@ img { display: block; max-width: 100%; }
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #7fc9aa;
+  color: #C8A882;
   font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.06em;
