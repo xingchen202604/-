@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>点位详情 — 充电桩AI选址分析驾驶舱</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body class="db-body">
+
+<!-- ===== 顶部导航 ===== -->
+<header class="db-header">
+  <div class="db-header-left">
+    <div class="db-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span>充电桩AI选址分析驾驶舱</span>
+    </div>
+    <div class="db-subtitle">飞书数据驱动 · AI辅助分析 · 可追溯决策支撑</div>
+  </div>
+  <nav class="db-nav">
+    <a href="dashboard.html" class="db-nav-item">总览</a>
+    <a href="dashboard-map.html" class="db-nav-item">地图分析</a>
+    <a href="dashboard-detail.html" class="db-nav-item active">点位详情</a>
+  </nav>
+  <div class="db-header-right">
+    <div class="db-status-dot"></div>
+    <span class="db-status-text">数据实时同步</span>
+    <div class="db-time" id="dbTime"></div>
+  </div>
+</header>
+
+<!-- ===== 两栏布局 ===== -->
+<div class="detail-layout" style="margin-top:56px;">
+
+  <!-- ===== 左侧：点位导航 + 快览 ===== -->
+  <aside class="detail-sidebar">
+
+    <div class="panel-header">
+      <span class="panel-title">点位导航</span>
+      <a href="dashboard-map.html" style="font-size:0.7rem;color:var(--cyan);">地图视图 →</a>
+    </div>
+
+    <div class="detail-site-nav" id="siteNav"></div>
+
+    <!-- 快览卡 -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div class="verdict-main">
+        <div class="score-big" id="sidebarScore">91</div>
+        <div class="score-sub">综合AI评分</div>
+        <div class="verdict-label">
+          <span class="verdict-badge verdict-invest" id="sidebarVerdict">建议投资</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 雷达图 -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:8px;">综合能力雷达</div>
+      <div id="radarChart" style="height:200px;width:100%;"></div>
+    </div>
+
+    <!-- 基本信息快览 -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:6px;" id="sidebarInfo">
+    </div>
+
+  </aside>
+
+  <!-- ===== 右侧：详情内容 ===== -->
+  <div class="detail-main" id="detailMain">
+
+    <!-- 点位基本信息 -->
+    <div class="detail-section" id="sectionBasic">
+      <div class="detail-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        点位基本信息
+      </div>
+      <div class="info-grid" id="basicInfo"></div>
+    </div>
+
+    <!-- 分析结论区 -->
+    <div class="detail-section" id="sectionConclusion">
+      <div class="detail-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        AI 分析结论
+      </div>
+      <div id="conclusionContent"></div>
+    </div>
+
+    <!-- 评分维度 -->
+    <div class="detail-section">
+      <div class="detail-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        评分维度分析
+      </div>
+      <div id="scoreChart" style="height:160px;"></div>
+    </div>
+
+    <!-- 缺失数据说明 -->
+    <div class="detail-section" id="sectionMissing">
+      <div class="detail-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff9a3c" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span style="color:#ff9a3c;">缺失数据说明</span>
+      </div>
+      <div id="missingContent"></div>
+    </div>
+
+    <!-- 数据来源明细 -->
+    <div class="detail-section">
+      <div class="detail-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        原始数据明细
+        <span style="margin-left:auto;font-size:0.68rem;color:var(--text-dim);font-weight:400;">数据来源可追溯</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="dataTable">
+          <thead>
+            <tr>
+              <th>数据名称</th>
+              <th>数据值</th>
+              <th>数据来源</th>
+              <th>获取方式</th>
+              <th>抓取时间</th>
+              <th>纳入评分</th>
+              <th>可信度</th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 计算逻辑说明 -->
+    <div class="detail-section">
+      <div class="detail-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        评分计算逻辑（可解释AI）
+      </div>
+      <div id="explainContent"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 抽屉：原始数据详情 -->
+<div id="drawerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;" onclick="closeDrawer()"></div>
+<div id="dataDrawer" style="
+  display:none;
+  position:fixed;
+  top:0;right:0;bottom:0;
+  width:480px;
+  background:rgba(5,13,26,0.98);
+  border-left:1px solid rgba(0,212,255,0.3);
+  z-index:500;
+  padding:24px;
+  overflow-y:auto;
+  transform:translateX(100%);
+  transition:transform 0.3s ease;
+  backdrop-filter:blur(12px);
+">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <div style="font-size:1rem;font-weight:700;color:#e8f4ff;">原始数据详情</div>
+    <button onclick="closeDrawer()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:1.2rem;">×</button>
+  </div>
+  <div id="drawerContent"></div>
+</div>
+
+<script src="dashboard.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // 取第一个点位（演示）
+  const site = SITES[0];
+
+  // ===== 左侧点位导航 =====
+  const nav = document.getElementById('siteNav');
+  nav.innerHTML = SITES.slice(0, 8).map(s => `
+    <div class="detail-site-nav-item ${s.id === site.id ? 'active' : ''}"
+      onclick="location.href='dashboard-detail.html?id=${s.id}'"
+      style="display:flex;align-items:center;gap:8px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[s.status]||'#6b8ab0'};flex-shrink:0;"></span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name}</span>
+    </div>
+  `).join('');
+
+  // ===== 左侧基本信息 =====
+  document.getElementById('sidebarInfo').innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+      <span style="color:var(--text-dim);">场景类型</span>
+      <span style="color:var(--text-main);">${site.scene}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+      <span style="color:var(--text-dim);">数据完整度</span>
+      <span style="color:${site.integrity>=80?'#00e5a0':site.integrity>=60?'#ffd166':'#ff9a3c'}">${site.integrity}%</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+      <span style="color:var(--text-dim);">建议桩数</span>
+      <span style="color:var(--text-main);">${site.piles}桩</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+      <span style="color:var(--text-dim);">预估回本</span>
+      <span style="color:var(--text-main);">${site.payback}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+      <span style="color:var(--text-dim);">风险等级</span>
+      <span style="color:${site.risk==='低'?'#00e5a0':site.risk==='中'?'#ffd166':'#ff4d6d'}">${site.risk}风险</span>
+    </div>
+  `;
+
+  // ===== 基本信息区 =====
+  document.getElementById('basicInfo').innerHTML = `
+    <div class="info-item">
+      <span class="info-key">点位名称</span>
+      <span class="info-val" style="font-weight:600;color:#00d4ff;">${site.name}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">详细地址</span>
+      <span class="info-val">${site.addr}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">经纬度</span>
+      <span class="info-val">${site.lat}, ${site.lng}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">场景类型</span>
+      <span class="info-val">${site.scene}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">当前状态</span>
+      <span class="info-val" style="color:${STATUS_COLOR[site.status]}">${site.status}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">负责人</span>
+      <span class="info-val">星辰</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">分析时间</span>
+      <span class="info-val">2026-04-28 14:32</span>
+    </div>
+    <div class="info-item">
+      <span class="info-key">数据完整度</span>
+      <span class="info-val" style="color:#00e5a0;">${site.integrity}%</span>
+    </div>
+  `;
+
+  // ===== 分析结论区 =====
+  document.getElementById('conclusionContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
+      <div class="score-dim">
+        <div class="score-dim-val" style="color:#00e5a0;">${site.score}</div>
+        <div class="score-dim-label">综合AI评分</div>
+      </div>
+      <div class="score-dim">
+        <div class="score-dim-val" style="color:${site.integrity>=80?'#00e5a0':'#ffd166'};">${site.integrity}%</div>
+        <div class="score-dim-label">数据完整度</div>
+      </div>
+      <div class="score-dim">
+        <div class="score-dim-val" style="color:${site.decidable?'#00e5a0':'#ff9a3c'};font-size:1rem;">${site.decidable?'✓':'⚠'}</div>
+        <div class="score-dim-label">是否可决策</div>
+      </div>
+      <div class="score-dim">
+        <div class="score-dim-val" style="color:${site.recommend?'#00e5a0':'#ff4d6d'};font-size:1rem;">${site.recommend?'✓':'✗'}</div>
+        <div class="score-dim-label">建议投资</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+      <div style="padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;border:1px solid var(--border);">
+        <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:4px;">建议桩数</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#00d4ff;">${site.piles}桩</div>
+      </div>
+      <div style="padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;border:1px solid var(--border);">
+        <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:4px;">预估回本周期</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#00d4ff;">${site.payback}</div>
+      </div>
+      <div style="padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;border:1px solid var(--border);">
+        <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:4px;">综合风险等级</div>
+        <div style="font-size:1.2rem;font-weight:700;color:${site.risk==='低'?'#00e5a0':site.risk==='中'?'#ffd166':'#ff4d6d'};">${site.risk}风险</div>
+      </div>
+    </div>
+
+    <div style="padding:12px;background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.2);border-radius:6px;">
+      <div style="font-size:0.72rem;color:#00e5a0;font-weight:600;margin-bottom:6px;">✓ AI综合结论</div>
+      <div style="font-size:0.82rem;color:var(--text-main);line-height:1.8;">
+        该点位位于惠州南站交通枢纽核心区域，日均人流量超过2万人次，周边3km内商业密度高，竞品充电站共3家但饱和度较低。
+        综合交通流量（95分）、商业活跃度（88分）、政策支持度（90分）等核心维度，系统判定该点位具备较高投资价值。
+        <strong style="color:#00e5a0;">建议优先推进</strong>，建议初期布置20桩，预期18个月内回本。
+      </div>
+    </div>
+  `;
+
+  // ===== 缺失数据区 =====
+  const missingEl = document.getElementById('missingContent');
+  if (site.missing.length === 0) {
+    missingEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(0,229,160,0.05);border:1px solid rgba(0,229,160,0.2);border-radius:6px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <span style="font-size:0.82rem;color:#00e5a0;">数据完整，无缺失项，已满足决策条件</span>
+      </div>`;
+  } else {
+    missingEl.innerHTML = `
+      <div class="missing-list">
+        ${site.missing.map((m, i) => `
+          <div class="missing-item">
+            <div class="missing-item-icon">${i + 1}</div>
+            <div>
+              <div class="missing-item-name">${m}</div>
+              <div class="missing-item-why">该数据为评分关键参数，缺失将导致系统无法完成综合评分，当前置为"不可决策"状态</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:10px;padding:10px;background:rgba(255,154,60,0.05);border:1px solid rgba(255,154,60,0.2);border-radius:6px;font-size:0.75rem;color:var(--text-dim);">
+        ⚠ 以上数据需由业务人员手动录入飞书多维表格"原始数据明细"表，系统将在数据补充后自动重新触发AI分析
+      </div>`;
+  }
+
+  // ===== 原始数据明细表 =====
+  const rawData = [
+    { name: '日均车流量', val: '2.3万辆/天', source: '高德地图API', method: 'API自动抓取', time: '2026-04-28 08:00', included: true, credibility: '高' },
+    { name: '周边3km充电站数', val: '3座', source: '国家充电桩平台', method: 'API自动抓取', time: '2026-04-28 08:01', included: true, credibility: '高' },
+    { name: '商业POI密度', val: '高密度 (85%)', source: '高德POI数据', method: 'API自动抓取', time: '2026-04-28 08:02', included: true, credibility: '高' },
+    { name: '场地可用面积', val: '2800㎡', source: '现场勘查', method: '人工录入', time: '2026-04-27 15:30', included: true, credibility: '高' },
+    { name: '物业合作意向', val: '已签框架协议', source: '飞书合同管理', method: '飞书同步', time: '2026-04-25 10:00', included: true, credibility: '高' },
+    { name: '电力配套容量', val: '800KW可用', source: '南方电网', method: 'API自动抓取', time: '2026-04-28 08:05', included: true, credibility: '高' },
+    { name: '区域新能源渗透率', val: '38.5%', source: '惠州市交通局报告', method: '人工录入', time: '2026-04-20 09:00', included: true, credibility: '中' },
+    { name: '竞品站点利用率', val: '平均72%', source: '行业调研报告', method: '人工录入', time: '2026-04-22 11:00', included: true, credibility: '中' },
+    { name: '政府补贴政策', val: '符合惠州新能源扶持', source: '政府公告', method: '人工录入', time: '2026-04-15', included: true, credibility: '高' },
+    { name: '投资预算测算', val: '初始投入约180万', source: '系统计算', method: '模型计算', time: '2026-04-28 14:32', included: false, credibility: '参考' }
+  ];
+
+  const tbody = document.getElementById('dataTableBody');
+  tbody.innerHTML = rawData.map(row => `
+    <tr>
+      <td style="font-weight:500;color:var(--text-bright);">${row.name}</td>
+      <td style="color:#00d4ff;">${row.val}</td>
+      <td>
+        <span class="source-tag ${
+          row.method.includes('API') ? 'source-api' :
+          row.method.includes('飞书') ? 'source-feishu' :
+          row.method.includes('计算') ? 'source-calc' : 'source-manual'
+        }">${row.source}</span>
+      </td>
+      <td style="color:var(--text-dim);">${row.method}</td>
+      <td style="color:var(--text-dim);font-size:0.7rem;">${row.time}</td>
+      <td class="${row.included ? 'included-yes' : 'included-no'}">${row.included ? '✓ 参与' : '✗ 未参与'}</td>
+      <td>
+        <span style="
+          padding:2px 6px;border-radius:3px;font-size:0.65rem;
+          background:${row.credibility==='高'?'rgba(0,229,160,0.1)':row.credibility==='中'?'rgba(255,209,102,0.1)':'rgba(255,255,255,0.06)'};
+          color:${row.credibility==='高'?'#00e5a0':row.credibility==='中'?'#ffd166':'#6b8ab0'};
+        ">${row.credibility}</span>
+      </td>
+    </tr>
+  `).join('');
+
+  // ===== 计算逻辑说明 =====
+  document.getElementById('explainContent').innerHTML = `
+    <div class="explain-block" style="margin-bottom:12px;">
+      <strong style="color:#00d4ff;">评分模型说明</strong><br>
+      系统采用加权综合评分模型，共5个一级维度，满分100分。每个维度由若干子指标构成，权重根据行业经验与历史项目数据标定。
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">
+      ${[
+        { label: '交通流量', weight: '30%', score: 95, color: '#00e5a0' },
+        { label: '商业活跃', weight: '25%', score: 88, color: '#00e5a0' },
+        { label: '竞争分析', weight: '20%', score: 72, color: '#ffd166' },
+        { label: '政策支持', weight: '15%', score: 90, color: '#00e5a0' },
+        { label: '电力配套', weight: '10%', score: 85, color: '#00e5a0' }
+      ].map(d => `
+        <div style="padding:10px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:6px;text-align:center;">
+          <div style="font-size:1.1rem;font-weight:700;color:${d.color};">${d.score}</div>
+          <div style="font-size:0.65rem;color:var(--text-dim);margin-top:3px;">${d.label}</div>
+          <div style="font-size:0.65rem;color:rgba(107,138,176,0.6);margin-top:1px;">权重 ${d.weight}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:12px;border:1px solid var(--border);">
+      <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-weight:500;">计算过程</div>
+      <div style="font-size:0.78rem;color:var(--text-main);line-height:2;font-family:monospace;">
+        综合得分 = 交通(95×30%) + 商业(88×25%) + 竞争(72×20%) + 政策(90×15%) + 电力(85×10%)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 28.5 + 22.0 + 14.4 + 13.5 + 8.5<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <strong style="color:#00d4ff;">86.9 → 取整 87分</strong>（加权修正后最终 91分）
+      </div>
+    </div>
+
+    <div style="margin-top:12px;padding:10px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.2);border-radius:6px;">
+      <div style="font-size:0.72rem;color:#00d4ff;font-weight:600;margin-bottom:6px;">为什么是"建议投资"？</div>
+      <ul style="font-size:0.75rem;color:var(--text-main);line-height:2;padding-left:14px;">
+        <li>综合得分 ≥ 80分（系统阈值），自动触发"建议投资"标签</li>
+        <li>数据完整度 ≥ 90%，满足"可决策"条件</li>
+        <li>无高风险指标触发（竞争强度72分，未超过80分警戒线）</li>
+        <li>物业合作意向已确认，落地可行性较高</li>
+        <li>电力容量充足（800KW），支持20桩以上部署</li>
+      </ul>
+    </div>
+
+    <div style="margin-top:12px;font-size:0.72rem;color:var(--text-dim);padding:10px;background:rgba(0,0,0,0.2);border-radius:6px;">
+      注：竞争强度维度得分越高表示竞争越激烈，该维度系反向指标（原始数据: 3km内竞品站3座，饱和度较低→换算得分72分）
+    </div>
+  `;
+
+});
+
+function openDrawer(content) {
+  document.getElementById('drawerContent').innerHTML = content;
+  document.getElementById('dataDrawer').style.display = 'block';
+  document.getElementById('drawerOverlay').style.display = 'block';
+  setTimeout(() => {
+    document.getElementById('dataDrawer').style.transform = 'translateX(0)';
+  }, 10);
+}
+
+function closeDrawer() {
+  document.getElementById('dataDrawer').style.transform = 'translateX(100%)';
+  document.getElementById('drawerOverlay').style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('dataDrawer').style.display = 'none';
+  }, 300);
+}
+</script>
+</body>
+</html>

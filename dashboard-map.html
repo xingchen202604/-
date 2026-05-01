@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>地图分析 — 充电桩AI选址分析驾驶舱</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body class="db-body">
+
+<!-- ===== 顶部导航 ===== -->
+<header class="db-header">
+  <div class="db-header-left">
+    <div class="db-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span>充电桩AI选址分析驾驶舱</span>
+    </div>
+    <div class="db-subtitle">飞书数据驱动 · AI辅助分析 · 可追溯决策支撑</div>
+  </div>
+  <nav class="db-nav">
+    <a href="dashboard.html" class="db-nav-item">总览</a>
+    <a href="dashboard-map.html" class="db-nav-item active">地图分析</a>
+    <a href="dashboard-detail.html" class="db-nav-item">点位详情</a>
+  </nav>
+  <div class="db-header-right">
+    <div class="db-status-dot"></div>
+    <span class="db-status-text">数据实时同步</span>
+    <div class="db-time" id="dbTime"></div>
+  </div>
+</header>
+
+<!-- ===== 三栏布局 ===== -->
+<div style="margin-top:56px; height:calc(100vh - 56px); display:grid; grid-template-columns:280px 1fr 320px;">
+
+  <!-- ===== 左侧：筛选 ===== -->
+  <aside class="map-sidebar-left">
+
+    <!-- 搜索区 -->
+    <div>
+      <div class="panel-header" style="margin-bottom:10px;">
+        <span class="panel-title">点位检索</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">关键词搜索</label>
+        <input class="db-input" id="siteSearch" placeholder="输入点位名称/地址..." />
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">场景类型</label>
+        <select class="db-select" id="sceneFilter">
+          <option value="">全部场景</option>
+          <option>交通枢纽</option>
+          <option>产业园区</option>
+          <option>商业综合体</option>
+          <option>工业区配套</option>
+          <option>高速服务区</option>
+          <option>公路驿站</option>
+          <option>公共停车场</option>
+          <option>城区商业</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">分析状态</label>
+        <select class="db-select" id="statusFilter">
+          <option value="">全部状态</option>
+          <option>待分析</option>
+          <option>分析中</option>
+          <option>建议投资</option>
+          <option>不建议</option>
+          <option>待人工补充</option>
+          <option>已确认</option>
+        </select>
+      </div>
+      <button class="db-btn-full" id="analyzeBtn" style="margin-top:12px;">
+        ⚡ 开始AI分析
+      </button>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div class="panel-header" style="margin-bottom:10px;">
+        <span class="panel-title">点位列表</span>
+        <span style="font-size:0.7rem;color:var(--text-dim);" id="siteCount">共10个</span>
+      </div>
+      <div class="site-list-compact" id="siteListCompact"></div>
+    </div>
+
+    <!-- 图层控制 -->
+    <div style="border-top:1px solid var(--border);padding-top:14px;">
+      <div class="panel-header" style="margin-bottom:10px;">
+        <span class="panel-title">图层控制</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerCompetitor" checked>
+          <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-main);cursor:pointer;">
+            <span style="width:10px;height:10px;border-radius:50%;background:#ff4d6d;display:inline-block;"></span>
+            竞品充电站
+          </span>
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerRadius" checked>
+          <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-main);cursor:pointer;">
+            <span style="width:10px;height:2px;background:#00d4ff;display:inline-block;border-radius:1px;"></span>
+            辐射圈层 1/3/5km
+          </span>
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerHeat" checked>
+          <span style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-main);cursor:pointer;">
+            <span style="width:10px;height:10px;border-radius:50%;background:rgba(255,209,102,0.6);display:inline-block;"></span>
+            活跃度热力层
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <style>
+      .layer-toggle { display: block; }
+      .layer-toggle input { display: none; }
+    </style>
+  </aside>
+
+  <!-- ===== 中间：地图 ===== -->
+  <div class="map-main">
+    <div id="analysisMap" style="width:100%;height:100%;"></div>
+
+    <!-- 浮动图层切换 -->
+    <div class="map-float-controls" style="top:14px;">
+      <button class="map-layer-btn active" onclick="this.classList.toggle('active')">底图</button>
+      <button class="map-layer-btn" onclick="this.classList.toggle('active')">卫星</button>
+      <button class="map-layer-btn" onclick="this.classList.toggle('active')">交通</button>
+    </div>
+
+    <!-- 图例 -->
+    <div style="
+      position:absolute;
+      bottom:30px;left:14px;
+      background:rgba(5,13,26,0.85);
+      border:1px solid var(--border);
+      border-radius:6px;
+      padding:10px 14px;
+      z-index:500;
+      backdrop-filter:blur(8px);
+    ">
+      <div style="font-size:0.68rem;color:var(--text-dim);margin-bottom:8px;letter-spacing:0.04em;">图 例</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-dim);">
+          <span style="width:12px;height:12px;border-radius:50%;background:#00d4ff;box-shadow:0 0 6px #00d4ff;display:inline-block;"></span>
+          当前分析点位
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-dim);">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ff4d6d;display:inline-block;"></span>
+          竞品充电站
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-dim);">
+          <span style="width:20px;height:2px;background:#00d4ff;border-radius:1px;display:inline-block;"></span>
+          辐射范围圈
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-dim);">
+          <span style="width:12px;height:12px;border-radius:50%;background:rgba(255,209,102,0.4);display:inline-block;"></span>
+          活跃度热力
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 右侧：分析结果 ===== -->
+  <aside class="map-sidebar-right">
+
+    <div class="panel-header">
+      <span class="panel-title">分析结果</span>
+      <span style="font-size:0.7rem;color:var(--text-dim);">点击点位查看</span>
+    </div>
+
+    <div id="resultCard" class="result-card">
+      <div style="text-align:center;padding:40px 0;color:var(--text-dim);">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4" style="margin:0 auto 10px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div style="font-size:0.78rem;">点击左侧点位或地图标记</div>
+        <div style="font-size:0.72rem;margin-top:4px;">查看AI分析结果</div>
+      </div>
+    </div>
+
+    <!-- 竞品分析 -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <span class="panel-title">周边竞品分析</span>
+      </div>
+      <div id="compChart" style="height:160px;"></div>
+    </div>
+
+    <!-- 周边POI分布 -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <span class="panel-title">周边 POI 密度分布</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <div class="data-row">
+          <span class="data-row-key">商超/购物中心</span>
+          <div style="flex:1;margin:0 10px;">
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:85%;background:linear-gradient(90deg,#00d4ff,#1e6fff)"></div></div>
+          </div>
+          <span class="data-row-val">17个</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-key">写字楼/办公</span>
+          <div style="flex:1;margin:0 10px;">
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:72%;background:linear-gradient(90deg,#00d4ff,#1e6fff)"></div></div>
+          </div>
+          <span class="data-row-val">12个</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-key">餐饮/娱乐</span>
+          <div style="flex:1;margin:0 10px;">
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:90%;background:linear-gradient(90deg,#00d4ff,#1e6fff)"></div></div>
+          </div>
+          <span class="data-row-val">38个</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-key">酒店/住宿</span>
+          <div style="flex:1;margin:0 10px;">
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:55%;background:linear-gradient(90deg,#00d4ff,#1e6fff)"></div></div>
+          </div>
+          <span class="data-row-val">8个</span>
+        </div>
+        <div class="data-row">
+          <span class="data-row-key">停车场</span>
+          <div style="flex:1;margin:0 10px;">
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:65%;background:linear-gradient(90deg,#00d4ff,#1e6fff)"></div></div>
+          </div>
+          <span class="data-row-val">6个</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<script src="dashboard.js"></script>
+<script>
+// 竞品图表
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('compChart');
+  if (!el) return;
+  const chart = echarts.init(el, null, { renderer: 'svg' });
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(5,13,26,0.95)',
+      borderColor: 'rgba(0,212,255,0.3)',
+      textStyle: { color: '#c8d8f0', fontSize: 11 }
+    },
+    grid: { top: 8, right: 10, bottom: 28, left: 50 },
+    xAxis: {
+      type: 'category',
+      data: ['1km内', '3km内', '5km内'],
+      axisLabel: { color: '#6b8ab0', fontSize: 10 },
+      axisLine: { lineStyle: { color: 'rgba(0,212,255,0.2)' } },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#6b8ab0', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } }
+    },
+    series: [
+      {
+        name: '国网/南网',
+        type: 'bar',
+        stack: 'total',
+        data: [1, 3, 5],
+        itemStyle: { color: '#1e6fff', borderRadius: [0,0,0,0] }
+      },
+      {
+        name: '特斯拉',
+        type: 'bar',
+        stack: 'total',
+        data: [1, 1, 2],
+        itemStyle: { color: '#ff4d6d' }
+      },
+      {
+        name: '第三方',
+        type: 'bar',
+        stack: 'total',
+        data: [1, 3, 7],
+        itemStyle: { color: '#ff9a3c', borderRadius: [3,3,0,0] }
+      }
+    ],
+    legend: {
+      bottom: 0,
+      itemWidth: 8, itemHeight: 6,
+      textStyle: { color: '#6b8ab0', fontSize: 10 }
+    }
+  });
+  window.addEventListener('resize', () => chart.resize());
+
+  // 图层复选框
+  document.getElementById('layerCompetitor')?.addEventListener('change', function() {
+    window._toggleLayer && window._toggleLayer('competitor', this.checked);
+  });
+  document.getElementById('layerRadius')?.addEventListener('change', function() {
+    window._toggleLayer && window._toggleLayer('radius', this.checked);
+  });
+  document.getElementById('layerHeat')?.addEventListener('change', function() {
+    window._toggleLayer && window._toggleLayer('heat', this.checked);
+  });
+
+  // 搜索过滤
+  document.getElementById('siteSearch')?.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.site-item-compact').forEach(el => {
+      const name = el.querySelector('.site-item-name')?.textContent.toLowerCase() || '';
+      el.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+});
+</script>
+</body>
+</html>

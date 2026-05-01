@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>充电桩AI选址分析驾驶舱</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body class="db-body">
+
+<!-- ===== 顶部导航 ===== -->
+<header class="db-header">
+  <div class="db-header-left">
+    <div class="db-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span>充电桩AI选址分析驾驶舱</span>
+    </div>
+    <div class="db-subtitle">飞书数据驱动 · AI辅助分析 · 可追溯决策支撑</div>
+  </div>
+  <nav class="db-nav">
+    <a href="dashboard.html" class="db-nav-item active">总览</a>
+    <a href="dashboard-map.html" class="db-nav-item">地图分析</a>
+    <a href="dashboard-detail.html" class="db-nav-item">点位详情</a>
+  </nav>
+  <div class="db-header-right">
+    <div class="db-status-dot"></div>
+    <span class="db-status-text">数据实时同步</span>
+    <div class="db-time" id="dbTime"></div>
+  </div>
+</header>
+
+<!-- ===== 主内容区 ===== -->
+<main class="db-main">
+
+  <!-- KPI卡片区 -->
+  <section class="kpi-row">
+    <div class="kpi-card" data-color="cyan">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">总点位数</div>
+        <div class="kpi-value" data-target="142">0</div>
+      </div>
+      <div class="kpi-trend up">↑ 12</div>
+    </div>
+    <div class="kpi-card" data-color="yellow">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">待分析</div>
+        <div class="kpi-value" data-target="38">0</div>
+      </div>
+      <div class="kpi-trend">本周新增</div>
+    </div>
+    <div class="kpi-card" data-color="blue">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">已分析</div>
+        <div class="kpi-value" data-target="89">0</div>
+      </div>
+      <div class="kpi-trend up">完成率 62%</div>
+    </div>
+    <div class="kpi-card" data-color="green">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">建议投资</div>
+        <div class="kpi-value" data-target="54">0</div>
+      </div>
+      <div class="kpi-trend up">↑ 优质点位</div>
+    </div>
+    <div class="kpi-card" data-color="red">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">不建议投资</div>
+        <div class="kpi-value" data-target="21">0</div>
+      </div>
+      <div class="kpi-trend down">高风险排除</div>
+    </div>
+    <div class="kpi-card" data-color="orange">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="kpi-body">
+        <div class="kpi-label">待人工补充</div>
+        <div class="kpi-value" data-target="14">0</div>
+      </div>
+      <div class="kpi-trend">需介入</div>
+    </div>
+  </section>
+
+  <!-- 中间主区域 -->
+  <section class="db-mid">
+
+    <!-- 左侧：地图 -->
+    <div class="db-map-panel">
+      <div class="panel-header">
+        <span class="panel-title">惠州点位分布图</span>
+        <div class="panel-actions">
+          <button class="db-btn-sm active" data-layer="all">全部</button>
+          <button class="db-btn-sm" data-layer="recommend">推荐</button>
+          <button class="db-btn-sm" data-layer="risk">风险</button>
+        </div>
+      </div>
+      <div id="overviewMap" class="overview-map"></div>
+      <div class="map-legend">
+        <span class="legend-item"><i class="dot dot-cyan"></i>待分析</span>
+        <span class="legend-item"><i class="dot dot-blue"></i>分析中</span>
+        <span class="legend-item"><i class="dot dot-orange"></i>待补充</span>
+        <span class="legend-item"><i class="dot dot-green"></i>建议投资</span>
+        <span class="legend-item"><i class="dot dot-red"></i>不建议</span>
+      </div>
+    </div>
+
+    <!-- 右侧：图表+列表 -->
+    <div class="db-right-panel">
+
+      <!-- 分析状态环形图 -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <span class="panel-title">分析状态分布</span>
+        </div>
+        <div id="statusChart" style="height:180px;"></div>
+      </div>
+
+      <!-- 推荐TOP榜 -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <span class="panel-title">推荐投资 TOP 点位</span>
+          <a href="dashboard-map.html" class="panel-link">查看地图 →</a>
+        </div>
+        <ul class="rank-list">
+          <li class="rank-item" data-id="1">
+            <span class="rank-no rank-gold">01</span>
+            <div class="rank-info">
+              <div class="rank-name">惠州南站商业综合体</div>
+              <div class="rank-addr">惠城区演达大道99号</div>
+            </div>
+            <div class="rank-score">
+              <span class="score-val">91</span>
+              <span class="score-label">分</span>
+            </div>
+          </li>
+          <li class="rank-item" data-id="2">
+            <span class="rank-no rank-silver">02</span>
+            <div class="rank-info">
+              <div class="rank-name">仲恺高新区产业园</div>
+              <div class="rank-addr">仲恺区陈江街道</div>
+            </div>
+            <div class="rank-score">
+              <span class="score-val">87</span>
+              <span class="score-label">分</span>
+            </div>
+          </li>
+          <li class="rank-item" data-id="3">
+            <span class="rank-no rank-bronze">03</span>
+            <div class="rank-info">
+              <div class="rank-name">大亚湾石化区配套园</div>
+              <div class="rank-addr">大亚湾区响水河西路</div>
+            </div>
+            <div class="rank-score">
+              <span class="score-val">84</span>
+              <span class="score-label">分</span>
+            </div>
+          </li>
+          <li class="rank-item" data-id="4">
+            <span class="rank-no">04</span>
+            <div class="rank-info">
+              <div class="rank-name">博罗长宁汽车服务区</div>
+              <div class="rank-addr">博罗县长宁镇广惠高速</div>
+            </div>
+            <div class="rank-score">
+              <span class="score-val">82</span>
+              <span class="score-label">分</span>
+            </div>
+          </li>
+          <li class="rank-item" data-id="5">
+            <span class="rank-no">05</span>
+            <div class="rank-info">
+              <div class="rank-name">惠东县城购物中心</div>
+              <div class="rank-addr">惠东县平山街道</div>
+            </div>
+            <div class="rank-score">
+              <span class="score-val">79</span>
+              <span class="score-label">分</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 底部区域 -->
+  <section class="db-bottom">
+
+    <!-- 月度分析趋势 -->
+    <div class="panel-card flex-2">
+      <div class="panel-header">
+        <span class="panel-title">月度分析趋势</span>
+      </div>
+      <div id="trendChart" style="height:180px;"></div>
+    </div>
+
+    <!-- 风险TOP -->
+    <div class="panel-card flex-1">
+      <div class="panel-header">
+        <span class="panel-title">高风险点位 TOP</span>
+      </div>
+      <ul class="risk-list">
+        <li class="risk-item">
+          <div class="risk-info">
+            <span class="risk-name">龙门县偏远山区驿站</span>
+            <span class="risk-tag tag-high">高风险</span>
+          </div>
+          <div class="risk-bar-wrap"><div class="risk-bar" style="width:88%"></div></div>
+        </li>
+        <li class="risk-item">
+          <div class="risk-info">
+            <span class="risk-name">惠阳区工业厂区旁</span>
+            <span class="risk-tag tag-high">高风险</span>
+          </div>
+          <div class="risk-bar-wrap"><div class="risk-bar" style="width:76%"></div></div>
+        </li>
+        <li class="risk-item">
+          <div class="risk-info">
+            <span class="risk-name">博罗罗阳旧城区</span>
+            <span class="risk-tag tag-mid">中风险</span>
+          </div>
+          <div class="risk-bar-wrap"><div class="risk-bar" style="width:62%"></div></div>
+        </li>
+        <li class="risk-item">
+          <div class="risk-info">
+            <span class="risk-name">大亚湾淡澳河岸边</span>
+            <span class="risk-tag tag-mid">中风险</span>
+          </div>
+          <div class="risk-bar-wrap"><div class="risk-bar" style="width:55%"></div></div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 最近动态 -->
+    <div class="panel-card flex-1">
+      <div class="panel-header">
+        <span class="panel-title">最近动态</span>
+      </div>
+      <ul class="activity-list">
+        <li class="activity-item">
+          <span class="activity-dot dot-green"></span>
+          <div class="activity-text">
+            <span class="activity-name">惠州南站商业综合体</span>
+            <span class="activity-action">完成AI分析，建议投资</span>
+            <span class="activity-time">10分钟前</span>
+          </div>
+        </li>
+        <li class="activity-item">
+          <span class="activity-dot dot-orange"></span>
+          <div class="activity-text">
+            <span class="activity-name">仲恺高新区产业园</span>
+            <span class="activity-action">缺少用电负荷数据，待补充</span>
+            <span class="activity-time">32分钟前</span>
+          </div>
+        </li>
+        <li class="activity-item">
+          <span class="activity-dot dot-cyan"></span>
+          <div class="activity-text">
+            <span class="activity-name">博罗长宁汽车服务区</span>
+            <span class="activity-action">新增点位，进入分析队列</span>
+            <span class="activity-time">1小时前</span>
+          </div>
+        </li>
+        <li class="activity-item">
+          <span class="activity-dot dot-red"></span>
+          <div class="activity-text">
+            <span class="activity-name">龙门县偏远山区驿站</span>
+            <span class="activity-action">AI分析完成，不建议投资</span>
+            <span class="activity-time">3小时前</span>
+          </div>
+        </li>
+        <li class="activity-item">
+          <span class="activity-dot dot-blue"></span>
+          <div class="activity-text">
+            <span class="activity-name">惠东县城购物中心</span>
+            <span class="activity-action">正在进行AI数据分析</span>
+            <span class="activity-time">昨天</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+  </section>
+</main>
+
+<!-- 点位弹窗 -->
+<div class="db-popup" id="sitePopup" style="display:none">
+  <div class="db-popup-inner">
+    <button class="popup-close" id="popupClose">×</button>
+    <div class="popup-title" id="popupTitle">点位名称</div>
+    <div class="popup-addr" id="popupAddr">地址信息</div>
+    <div class="popup-badges" id="popupBadges"></div>
+    <div class="popup-score-row">
+      <div class="popup-score-item">
+        <div class="popup-score-label">AI评分</div>
+        <div class="popup-score-val" id="popupScore">--</div>
+      </div>
+      <div class="popup-score-item">
+        <div class="popup-score-label">数据完整度</div>
+        <div class="popup-score-val" id="popupIntegrity">--</div>
+      </div>
+      <div class="popup-score-item">
+        <div class="popup-score-label">建议桩数</div>
+        <div class="popup-score-val" id="popupPiles">--</div>
+      </div>
+    </div>
+    <div class="popup-actions">
+      <a href="dashboard-map.html" class="db-btn-primary">地图分析</a>
+      <a href="dashboard-detail.html" class="db-btn-outline">查看详情</a>
+    </div>
+  </div>
+</div>
+
+<div class="db-overlay" id="dbOverlay" style="display:none"></div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
